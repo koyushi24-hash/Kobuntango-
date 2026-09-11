@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>古文単語 毎日5分マスター</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Yuji+Syuku&display=swap');
+    .font-mincho { font-family: 'Shippori Mincho', serif; }
+    .font-yuji { font-family: 'Yuji Syuku', serif; }
+  </style>
+</head>
+<body class="bg-amber-50 text-slate-800 min-h-screen font-sans flex flex-col">
+  <div id="root" class="flex-grow flex flex-col"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // 写真から抽出した古文単語データベース（全152語）
+    const VOCAB_DATA = [
+      { id: 1, word: "あし（悪し）", mean: "悪い", desc: "絶対的に悪い。対義語は「よし」。" },
+      { id: 2, word: "あした（朝）", mean: "朝・翌朝", desc: "特に何かがあった翌朝を指すことが多い。" },
+      { id: 3, word: "あそぶ（遊ぶ）", mean: "管弦などの遊芸をする", desc: "音楽や詩歌などを楽しむこと。" },
+      { id: 4, word: "あはれ（なり）", mean: "しみじみとした情趣がある", desc: "しみじみとした感動や哀愁を表す。" },
+      { id: 5, word: "あまた（数多）", mean: "たくさん", desc: "「数多（あまた）」と書く副詞。" },
+      { id: 6, word: "あやし（奇し・怪し / 賤し）", mean: "不思議だ / 身分が低い・粗末だ", desc: "文脈で「不思議」か「粗末」かを使い分ける。" },
+      { id: 7, word: "あり（有・在り）", mean: "生きている・存在する", desc: "人物には「生きている」、物体には「存在する」。" },
+      { id: 8, word: "ありく（歩く）", mean: "歩き回る・～してまわる", desc: "あちこち移動する動作を表す。" },
+      { id: 9, word: "いかが（如何）", mean: "どのように・どうして～か", desc: "疑問（どのように）や反語（どうして〜か）で用いる。" },
+      { id: 10, word: "いかがせむ", mean: "どうしようか・どうしようもない", desc: "疑問（どうしようか）または反語（どうしようもない）。" },
+      { id: 11, word: "いかに（如何に）", mean: "なぜ・どのように", desc: "疑問・反語を表す副詞。" },
+      { id: 12, word: "いくほど（幾程）", mean: "どれほど・どのくらい", desc: "時間や程度の長さを問う。" },
+      { id: 13, word: "いざたまへ", mean: "さあ、いらっしゃい", desc: "相手を誘う表現。" },
+      { id: 14, word: "いづく（代）", mean: "どこ・どちら", desc: "場所を指す代名詞。" },
+      { id: 15, word: "いと", mean: "たいそう・とても", desc: "否定を伴うと「それほど〜ない」の意味になる。" },
+      { id: 16, word: "いけない（幼けない）", mean: "あけない・幼い", desc: "無邪気で幼い様子。" },
+      { id: 17, word: "いふかひなし", mean: "身分が低い・取るに足りない", desc: "言い甲斐がないことから転じた。" },
+      { id: 18, word: "いみじ", mean: "たいそう・すばらしい・ひどい", desc: "プラス面・マイナス面どちらの度合いの強さにも使う。" },
+      { id: 19, word: "いやし（卑し・賤し）", mean: "身分が低い・下品だ", desc: "地位や品格が低いこと。" },
+      { id: 20, word: "いらふ（答・応ふ）", mean: "答える・返事をする", desc: "呼びかけに答える動作。" },
+      { id: 21, word: "うつくし（愛・美・慈）", mean: "かわいい・愛らしい", desc: "現代語の「美しい」だけでなく「かわいい」が重要。" },
+      { id: 22, word: "うるさし", mean: "わずらわしい・面倒だ", desc: "うっとうしく気にかかる様子。" },
+      { id: 23, word: "うらめし（恨めし）", mean: "残念だ・恨めしい", desc: "思い通りにならず不満な気持ち。" },
+      { id: 24, word: "うるはし（麗・美）", mean: "きちんと整っている・美しい", desc: "整然としてきちんとしている様子。" },
+      { id: 25, word: "え（～打消）", mean: "～することができない", desc: "「え～ず」の形で不可能を表す。" },
+      { id: 26, word: "えうるなし（要なし）", mean: "必要がない", desc: "「要なし」の変化形。" },
+      { id: 27, word: "えも言はず", mean: "なんとも言いようがないほど", desc: "言葉にできないほどすばらしい/ひどい。" },
+      { id: 28, word: "おきて（掟つ）", mean: "指示する・取り決める", desc: "前もって計画・命令すること。" },
+      { id: 29, word: "おとなふ", mean: "音を立てる・訪れる", desc: "音を立てて存在を知らせ、訪問すること。" },
+      { id: 30, word: "おどろく", mean: "目を覚ます・ハッと気づく", desc: "ハッと意識が覚める動作。" },
+      { id: 31, word: "おはす（御座す）", mean: "いらっしゃる", desc: "「あり」「をり」の尊敬語。" },
+      { id: 32, word: "おぼす（思す）", mean: "お思いになる", desc: "「思ふ」の尊敬語。" },
+      { id: 33, word: "おはす（仰す）", mean: "おっしゃる・命じる", desc: "「言ふ」の尊敬語。" },
+      { id: 34, word: "おぼゆ（覚ゆ）", mean: "自然と思われる・似ている", desc: "心に自然と浮かぶ、思い出される。" },
+      { id: 35, word: "おもしろし（面白し）", mean: "趣がある・風情がある", desc: "景色の美しさや風流さを表す。" },
+      { id: 36, word: "おろかなり", mean: "おろそかだ・いい加減だ", desc: "「言ふもおろかなり（言うまでもない）」の形も頻出。" },
+      { id: 37, word: "かく（斯く）", mean: "このように", desc: "これ、このとおり。" },
+      { id: 38, word: "かかり", mean: "このようだ", desc: "「かくあり」の変化形。" },
+      { id: 39, word: "かげ（影・景・陰）", mean: "光・姿", desc: "月や太陽の「光」や「面影」を表す。" },
+      { id: 40, word: "かし（か）まし", mean: "やかましい・うるさい", desc: "騒々しい様子。" },
+      { id: 41, word: "かしこ", mean: "あそこ", desc: "遠くの場所を指す。" },
+      { id: 42, word: "かしづく", mean: "大切に育てる・後見する", desc: "親が子を宝物のように育てること。" },
+      { id: 43, word: "かたち（形・容貌）", mean: "顔立ち・容姿", desc: "人の顔や容姿のこと。" },
+      { id: 44, word: "かなし（愛・哀・悲し）", mean: "いとしい・切ない", desc: "愛おしくて胸が締め付けられる感情。" },
+      { id: 45, word: "かなしうす", mean: "かわいがる", desc: "愛おしく思う動詞化。" },
+      { id: 46, word: "かやう（の）", mean: "このような", desc: "「かくやう」の変化形。" },
+      { id: 47, word: "き（助動詞）", mean: "～た（直接体験の過去）", desc: "自分が直接体験した過去を表す。" },
+      { id: 48, word: "きこゆ（聞こゆ）", mean: "評判になる・申し上げる", desc: "自白・謙譲語「申し上げる」の意味も重要。" },
+      { id: 49, word: "きょうす（興す）", mean: "面白がる", desc: "興味を持って楽しむ。" },
+      { id: 50, word: "きよらなり", mean: "清らかで美しい", desc: "最高級の華やかな美しさを表す。" },
+      { id: 51, word: "くちおし（口惜し）", mean: "残念だ・がっかりだ", desc: "期待が外れて口惜しい様子。" },
+      { id: 52, word: "くるし", mean: "見苦しい・つらい", desc: "差し支える、不都合だ。" },
+      { id: 53, word: "げに", mean: "まことに・本当に", desc: "実に、なるほどその通り。" },
+      { id: 54, word: "けり（助動詞）", mean: "～た・～だなあ", desc: "伝聞過去（～た）や詠嘆（～だなあ）。" },
+      { id: 55, word: "こころなし（心なし）", mean: "情趣を理解しない・思いやりがない", desc: "風流心や配慮がないこと。" },
+      { id: 56, word: "こころあり（心あり）", mean: "思いやりがある・風情を理解する", desc: "気配りや風流心があること。" },
+      { id: 57, word: "こころう（心得）", mean: "理解する・納得する", desc: "事情を飲み込むこと。" },
+      { id: 58, word: "こころにくし", mean: "奥ゆかしい・心惹かれる", desc: "ミステリアスで上品な魅力。" },
+      { id: 59, word: "ごとし", mean: "～のようだ", desc: "比喩を表す助動詞。" },
+      { id: 60, word: "ことわり（理）", mean: "道理・もっともなこと", desc: "スジが通っていること。" },
+      { id: 61, word: "こよなし", mean: "この上ない・格段に差がある", desc: "並外れている様子。" },
+      { id: 62, word: "ご覧ず", mean: "ご覧になる", desc: "「見る」の最高敬語。" },
+      { id: 63, word: "さ", mean: "そのように", desc: "指示語。「さ指示」の基礎。" },
+      { id: 64, word: "さうなし（双・左右なし）", mean: "並ぶものがない / ためらわない", desc: "「双なし（二つとない）」と「左右なし（迷わない）」の2つ。" },
+      { id: 65, word: "さしたる", mean: "たいした～（ない）", desc: "打消を伴って「取り立てて言うほどの〜ない」。" },
+      { id: 66, word: "さすがに", mean: "そうはいってもやはり", desc: "前言を認めつつ否定的な含みを持たせる。" },
+      { id: 67, word: "させる", mean: "たいした～", desc: "打消を伴って用いる。" },
+      { id: 68, word: "さぶらふ・さすらふ", mean: "お仕えする・ございます・～です", desc: "謙譲・丁寧表現。" },
+      { id: 69, word: "さらなり", mean: "言うまでもない", desc: "「～はもちろん」の決まり文句。" },
+      { id: 70, word: "さらに（～打消）", mean: "全く～ない", desc: "強い全否定を表す。" },
+      { id: 71, word: "さらぬ", mean: "それ以外の・避えられない", desc: "そうではない、または避けられない。" },
+      { id: 72, word: "さらば", mean: "それなら・それならば", desc: "順接の接続詞。" },
+      { id: 73, word: "さりとて", mean: "だからといって", desc: "逆接の接続表現。" },
+      { id: 74, word: "さる", mean: "そのような・しかるべき", desc: "そうした、立派な。" },
+      { id: 75, word: "ざる", mean: "～ない", desc: "打消「ず」の連体形。" },
+      { id: 76, word: "されば", mean: "だから・それゆえ", desc: "順接の確定条件。" },
+      { id: 77, word: "し（過去助動詞）", mean: "～た", desc: "過去「き」の連体形。" },
+      { id: 78, word: "しか", mean: "そのように", desc: "副詞。「しかり」などの語源。" },
+      { id: 79, word: "しかるに", mean: "ところが・そうであるのに", desc: "逆接の接続詞。" },
+      { id: 80, word: "したり顔", mean: "得意顔・ドヤ顔", desc: "成し遂げたような満足気な顔。" },
+      { id: 81, word: "しばし", mean: "しばらく・しばしの間", desc: "ほんの少しの時間。" },
+      { id: 82, word: "しるし（徴・霊験）", mean: "効き目・ご利益・前兆", desc: "神仏の霊験や効果。" },
+      { id: 83, word: "しるし（著し）", mean: "はっきりしている・予想通りだ", desc: "明白である様子。" },
+      { id: 84, word: "じ・まじ", mean: "～ないだろう・～まい", desc: "打消推量・打消意志。" },
+      { id: 85, word: "すなはち", mean: "すぐに・そのまま", desc: "即座に行動する様子。" },
+      { id: 86, word: "すべなし", mean: "どうしようもない・手段がない", desc: "術（すべ）がないこと。" },
+      { id: 87, word: "そこはかとなし", mean: "これといった理由もない・あてもない", desc: "何となく茫洋としている様子。" },
+      { id: 88, word: "ぞ", mean: "～（強調）", desc: "係助詞。文末を連体形にする。" },
+      { id: 89, word: "たくひ（類・比）", mean: "同類・仲間・比べもの", desc: "同じ種類のもの。" },
+      { id: 90, word: "たてまつる（奉る）", mean: "差し上げる・お～申し上げる", desc: "「与ふ」「言ふ」などの謙譲語。" },
+      { id: 91, word: "だに", mean: "～さえ・せめて～だけでも", desc: "類推（～でさえ）または最小限の希望。" },
+      { id: 92, word: "たのむ（頼む）", mean: "あてにする（四段）/ あてにさせる（下二段）", desc: "活用によって「あてにする」か「期待させる」かが変わる。" },
+      { id: 93, word: "たふ（耐・給ふ）", mean: "我慢する / ～くださる", desc: "耐えること、または敬意。" },
+      { id: 94, word: "たまふ（給ふ）", mean: "なさる / ～ていただく", desc: "尊敬語（～なさる）または謙譲語。" },
+      { id: 95, word: "たれ", mean: "誰", desc: "疑問の代名詞。" },
+      { id: 96, word: "つかまつる（仕る）", mean: "お仕えする・いたす", desc: "「す」の謙譲語。" },
+      { id: 97, word: "つきづきし（付き付きし）", mean: "似つかわしい・ふさわしい", desc: "調和が取れてぴったりな様子。" },
+      { id: 98, word: "つとめて", mean: "早朝・翌朝", desc: "清々しい朝の時間帯。" },
+      { id: 99, word: "つゆ（～打消）", mean: "少しも～ない", desc: "全否定を表す（「つゆ～打ち消し」）。" },
+      { id: 100, word: "つれづれ（徒然）", mean: "することもなく退屈だ", desc: "手持ち無沙汰で物寂しい様子。" },
+      { id: 101, word: "て（手）", mean: "筆跡・文字・演奏法", desc: "「手が良い」は字が上手い、楽器演奏が上手い。" },
+      { id: 102, word: "と", mean: "～ではなく", desc: "対比や否定の意味合い。" },
+      { id: 103, word: "とく（疾く）", mean: "早く・すでに", desc: "迅速に、あるいはとっくに。" },
+      { id: 104, word: "としごろ（年頃）", mean: "長年・数年来", desc: "ここ数年の間ずっと。" },
+      { id: 105, word: "とて", mean: "～と言って・～と思って", desc: "引用や理由を表す。" },
+      { id: 106, word: "とぶらふ（訪ふ・弔ふ）", mean: "訪問する・見舞う・供養する", desc: "尋ねて訪れる、慰める。" },
+      { id: 107, word: "～ど", mean: "～けれども", desc: "逆接の接続助詞。" },
+      { id: 108, word: "ながむ（眺む・詠む）", mean: "ぼんやり見る・歌を詠む", desc: "物思いに沈んで眺める。" },
+      { id: 109, word: "な～そ", mean: "～するな", desc: "柔らかい禁止表現。" },
+      { id: 110, word: "など（か）", mean: "なぜ・どうして～か", desc: "疑問・反語。" },
+      { id: 111, word: "ならびなし", mean: "並ぶものがない・比類ない", desc: "天下無双である様子。" },
+      { id: 112, word: "にくし（憎し）", mean: "気にくわない・見苦しい", desc: "感情的な不快感。" },
+      { id: 113, word: "にほふ（匂ふ）", mean: "美しく輝く・色づく", desc: "視覚的に美しく照り輝くこと。" },
+      { id: 114, word: "～ね（ども）", mean: "～ない（けれども）", desc: "打消の助動詞「ず」の已然形。" },
+      { id: 115, word: "念ず（念ず）", mean: "我慢する・心の中で祈る", desc: "感情や痛みをグッと堪える。" },
+      { id: 116, word: "のたまふ（宣ふ）", mean: "おっしゃる", desc: "「言ふ」の尊敬語。" },
+      { id: 117, word: "のみ", mean: "～だけ・～ばかり", desc: "限定を表す副助詞。" },
+      { id: 118, word: "はべり（侍り）", mean: "お仕えする・～です・ございます", desc: "謙譲語または丁寧語。" },
+      { id: 119, word: "ば", mean: "もし～なら（未然形） / ～ので（已然形）", desc: "条件を表す接続助詞。" },
+      { id: 120, word: "文（ふみ）", mean: "手紙・漢詩文・書物", desc: "学問や手紙のこと。" },
+      { id: 121, word: "ほど（程）", mean: "時間・距離・身分・程度", desc: "あいまいな範囲・限界を示す。" },
+      { id: 122, word: "まゐらす（参らす）", mean: "差し上げる・お～申し上げる", desc: "「与ふ」の謙譲語。" },
+      { id: 123, word: "ままに", mean: "～の通りに・～するとすぐに", desc: "状態の継続や即時動作。" },
+      { id: 124, word: "ひがむ（僻む）", mean: "ひねくれる・間違える", desc: "ひがみっぽくなる、勘違いする。" },
+      { id: 125, word: "ひがし", mean: "東", desc: "方角のひがし。" },
+      { id: 126, word: "ひととなり（人柄・人となり）", mean: "生まれつきの性格・人柄", desc: "人間の性質や器量。" },
+      { id: 127, word: "まゐる（参る）", mean: "参上する・召し上がる", desc: "行く・来る・食べる等の敬語。" },
+      { id: 128, word: "みあらハす", mean: "正体を見破る", desc: "隠していたものを見つける。" },
+      { id: 129, word: "む（ん）", mean: "～よう・～だろう", desc: "推量・意志の助動詞。" },
+      { id: 130, word: "むなし（虚し・空し）", mean: "空っぽだ・無駄だ・儚い", desc: "甲斐がない状態。" },
+      { id: 131, word: "めす（召す）", mean: "お呼びになる・お召しになる", desc: "呼び出す、服をお召しになる。" },
+      { id: 132, word: "めづ（愛づ）", mean: "褒める・愛する・感心する", desc: "心惹かれて絶賛すること。" },
+      { id: 133, word: "めでたし", mean: "すばらしい・見事だ", desc: "称賛に値する最高級のほめ言葉。" },
+      { id: 134, word: "やくなし（益無し）", mean: "無駄だ・役に立たない", desc: "「益（やく）」がないこと。" },
+      { id: 135, word: "やうやう（漸々）", mean: "次第に・だんだんと", desc: "徐々に変化していく様子。" },
+      { id: 136, word: "やがて", mean: "すぐに・そのまま", desc: "間を置かずすぐ、あるいは現状維持。" },
+      { id: 137, word: "やすし（易し）", mean: "簡単だ・安らかだ", desc: "容易である、心が穏やか。" },
+      { id: 138, word: "やむごとなし", mean: "高貴だ・尊い", desc: "放置できないほど貴重・尊貴だ。" },
+      { id: 139, word: "ゆかし", mean: "見たい・知りたい・聞きたい", desc: "心惹かれて強く知りたい欲求。" },
+      { id: 140, word: "ゆる", mean: "～のために", desc: "理由や目的を示す。" },
+      { id: 141, word: "よし（由）", mean: "ことの次第・ふり（～するふり）", desc: "事情、あるいは見かけ。" },
+      { id: 142, word: "よろし", mean: "悪くはない・まあ普通だ", desc: "「よし」よりは下だが「悪し」ではない。" },
+      { id: 143, word: "よもすがら", mean: "一晩中", desc: "夜の始まりから明け方までずっと。" },
+      { id: 144, word: "よろづ（万）", mean: "いろいろ・すべて", desc: "多様な物事全般。" },
+      { id: 145, word: "わたる（渡る）", mean: "行く・一面に～する・～し続ける", desc: "移動する、または補助動詞で継続。" },
+      { id: 146, word: "わたし", mean: "あたり・近所", desc: "周辺の地域。" },
+      { id: 147, word: "わりなし", mean: "道理に合わない・困った・つらい", desc: "筋道が立たず手がつけられない。" },
+      { id: 148, word: "わびし", mean: "困った・つらい・わびしい", desc: "思い通りにならず辛い状態。" },
+      { id: 149, word: "わろし", mean: "良くない・いまいちだ", desc: "「よろし」よりも劣る。" },
+      { id: 150, word: "ゐる（居る）", mean: "座る・引き連れる", desc: "座る、または伴って行動する。" },
+      { id: 151, word: "をかし", mean: "面白い・すぐれている・趣がある", desc: "知的な興味や美しさに感嘆する。" },
+      { id: 152, word: "をり（居り）", mean: "ある・いる・座っている", desc: "「あり」の丁寧・存在表現。" }
+    ];
+
+    function App() {
+      const [gameState, setGameState] = useState('home'); // home, quiz, result
+      const [questions, setQuestions] = useState([]);
+      const [currentIndex, setCurrentIndex] = useState(0);
+      const [score, setScore] = useState(0);
+      const [selectedOption, setSelectedOption] = useState(null);
+      const [isAnswered, setIsAnswered] = useState(false);
+      const [wrongList, setWrongList] = useState([]);
+      const [range, setRange] = useState('all'); // all, 1-50, 51-100, 101-152
+      const [streak, setStreak] = useState(0);
+
+      useEffect(() => {
+        const savedStreak = localStorage.getItem('kobun_streak') || 0;
+        setStreak(parseInt(savedStreak, 10));
+      }, []);
+
+      // クイズ作成ロジック
+      const startQuiz = (selectedRange = range) => {
+        let pool = [...VOCAB_DATA];
+        if (selectedRange === '1-50') pool = pool.slice(0, 50);
+        else if (selectedRange === '51-100') pool = pool.slice(50, 100);
+        else if (selectedRange === '101-152') pool = pool.slice(100);
+
+        // ランダムに10個抽出
+        const shuffled = [...pool].sort(() => 0.5 - Math.random());
+        const selected = shuffled.slice(0, Math.min(10, pool.length));
+
+        const quizData = selected.map(item => {
+          // ダミー選択肢（他の単語から3つ取得）
+          const otherItems = VOCAB_DATA.filter(v => v.id !== item.id);
+          const shuffledOthers = [...otherItems].sort(() => 0.5 - Math.random()).slice(0, 3);
+          
+          const options = [
+            { text: item.mean, isCorrect: true, desc: item.desc },
+            ...shuffledOthers.map(o => ({ text: o.mean, isCorrect: false, desc: o.desc }))
+          ].sort(() => 0.5 - Math.random());
+
+          return {
+            targetWord: item.word,
+            correctMean: item.mean,
+            options: options,
+            id: item.id
+          };
+        });
+
+        setQuestions(quizData);
+        setCurrentIndex(0);
+        setScore(0);
+        setSelectedOption(null);
+        setIsAnswered(false);
+        setWrongList([]);
+        setGameState('quiz');
+      };
+
+      const handleSelectOption = (index) => {
+        if (isAnswered) return;
+        setSelectedOption(index);
+        setIsAnswered(true);
+
+        const currentQ = questions[currentIndex];
+        if (currentQ.options[index].isCorrect) {
+          setScore(prev => prev + 1);
+        } else {
+          setWrongList(prev => [...prev, currentQ]);
+        }
+      };
+
+      const handleNextQuestion = () => {
+        if (currentIndex + 1 < questions.length) {
+          setCurrentIndex(prev => prev + 1);
+          setSelectedOption(null);
+          setIsAnswered(false);
+        } else {
+          // 終了
+          const newStreak = streak + 1;
+          setStreak(newStreak);
+          localStorage.setItem('kobun_streak', newStreak);
+          setGameState('result');
+        }
+      };
+
+      return (
+        <div className="max-w-md mx-auto w-full flex-grow flex flex-col p-4">
+          {/* ヘッダー */}
+          <header className="text-center py-4 border-b-2 border-amber-800/20 mb-4">
+            <h1 className="text-2xl font-bold font-mincho text-amber-900 tracking-wider">
+              <i className="fa-solid fa-book-bookmark text-amber-700 mr-2"></i>
+              古文単語 毎日5分マスター
+            </h1>
+            <p className="text-xs text-amber-800/70 mt-1">写真の152単語を完全攻略！</p>
+          </header>
+
+          {/* HOME 画面 */}
+          {gameState === 'home' && (
+            <div className="flex-grow flex flex-col justify-between py-6">
+              <div className="bg-amber-100/60 rounded-2xl p-6 border border-amber-200 shadow-sm text-center">
+                <div className="inline-block bg-amber-200 text-amber-900 px-4 py-1 rounded-full text-xs font-bold mb-3">
+                  <i className="fa-solid fa-fire text-orange-500 mr-1"></i> 連続学習: {streak}日目
+                </div>
+                <h2 className="text-xl font-bold text-slate-800 font-mincho mb-2">今日の5分チェック</h2>
+                <p className="text-sm text-slate-600 mb-6">
+                  ランダムで10問出題されます。<br />毎日の反復で定着させましょう！
+                </p>
+
+                {/* 範囲選択 */}
+                <div className="mb-6 text-left">
+                  <label className="block text-xs font-bold text-amber-900 mb-2">出題範囲の選択：</label>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {[
+                      { key: 'all', label: '全152語（完全ランダム）' },
+                      { key: '1-50', label: '1 ～ 50 番' },
+                      { key: '51-100', label: '51 ～ 100 番' },
+                      { key: '101-152', label: '101 ～ 152 番' },
+                    ].map(item => (
+                      <button
+                        key={item.key}
+                        onClick={() => setRange(item.key)}
+                        className={`p-2.5 rounded-xl border text-center transition font-bold ${
+                          range === item.key 
+                            ? 'bg-amber-800 text-white border-amber-800 shadow' 
+                            : 'bg-white text-slate-700 border-amber-200 hover:bg-amber-50'
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => startQuiz()}
+                  className="w-full bg-red-700 hover:bg-red-800 text-white font-bold py-4 rounded-xl shadow-lg transition transform active:scale-95 text-lg font-mincho flex items-center justify-center gap-2"
+                >
+                  <i className="fa-solid fa-play"></i> テストを開始する
+                </button>
+              </div>
+
+              <div className="text-center text-xs text-amber-800/60">
+                画面上の「ホーム画面に追加」をするとアプリのようにいつでも1タップで起動できます！
+              </div>
+            </div>
+          )}
+
+          {/* QUIZ 画面 */}
+          {gameState === 'quiz' && (
+            <div className="flex-grow flex flex-col justify-between">
+              <div>
+                {/* 進行バー */}
+                <div className="flex justify-between items-center text-xs text-amber-900 font-bold mb-2">
+                  <span>第 {currentIndex + 1} 問 / 全 {questions.length} 問</span>
+                  <span>スコア: {score}</span>
+                </div>
+                <div className="w-full bg-amber-200 rounded-full h-2 mb-6">
+                  <div
+                    className="bg-red-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
+                  ></div>
+                </div>
+
+                {/* 問題カード */}
+                <div className="bg-white rounded-2xl p-6 shadow-md border border-amber-200 mb-6 text-center">
+                  <span className="text-xs font-bold text-amber-700 bg-amber-100 px-3 py-1 rounded-full">古文単語</span>
+                  <div className="text-3xl font-bold font-mincho text-slate-900 my-4 tracking-wide">
+                    {questions[currentIndex].targetWord}
+                  </div>
+                  <p className="text-xs text-slate-500">正しい現代語訳を選んでください</p>
+                </div>
+
+                {/* 選択肢リスト */}
+                <div className="space-y-3">
+                  {questions[currentIndex].options.map((opt, idx) => {
+                    let btnStyle = "bg-white text-slate-800 border-amber-200 hover:border-amber-400";
+                    if (isAnswered) {
+                      if (opt.isCorrect) {
+                        btnStyle = "bg-emerald-100 text-emerald-900 border-emerald-500 font-bold";
+                      } else if (selectedOption === idx) {
+                        btnStyle = "bg-rose-100 text-rose-900 border-rose-400";
+                      } else {
+                        btnStyle = "bg-slate-50 text-slate-400 border-slate-200 opacity-60";
+                      }
+                    }
+
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => handleSelectOption(idx)}
+                        disabled={isAnswered}
+                        className={`w-full p-4 rounded-xl border-2 text-left text-sm transition-all flex items-center justify-between ${btnStyle}`}
+                      >
+                        <span>{opt.text}</span>
+                        {isAnswered && opt.isCorrect && (
+                          <i className="fa-solid fa-circle-check text-emerald-600 text-lg"></i>
+                        )}
+                        {isAnswered && selectedOption === idx && !opt.isCorrect && (
+                          <i className="fa-solid fa-circle-xmark text-rose-500 text-lg"></i>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* 解説表示 */}
+                {isAnswered && (
+                  <div className="mt-4 p-4 rounded-xl bg-amber-100/80 border border-amber-300 text-xs text-amber-950">
+                    <div className="font-bold mb-1 flex items-center gap-1">
+                      <i className="fa-solid fa-lightbulb text-amber-600"></i> ワンポイント解説:
+                    </div>
+                    {questions[currentIndex].options.find(o => o.isCorrect)?.desc}
+                  </div>
+                )}
+              </div>
+
+              {/* 次へボタン */}
+              {isAnswered && (
+                <button
+                  onClick={handleNextQuestion}
+                  className="w-full mt-6 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 rounded-xl shadow transition font-mincho flex items-center justify-center gap-2"
+                >
+                  {currentIndex + 1 === questions.length ? '結果を見る' : '次の問題へ'}
+                  <i className="fa-solid fa-arrow-right"></i>
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* RESULT 画面 */}
+          {gameState === 'result' && (
+            <div className="flex-grow flex flex-col justify-between py-4">
+              <div>
+                <div className="bg-white rounded-2xl p-6 shadow-md border border-amber-200 text-center mb-6">
+                  <h2 className="text-lg font-bold font-mincho text-slate-800 mb-2">お疲れ様でした！</h2>
+                  <div className="text-4xl font-extrabold text-red-600 my-3 font-mincho">
+                    {score} <span className="text-lg text-slate-600 font-sans">/ {questions.length} 問正解</span>
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    {score === 10 ? '素晴らしい！全問正解です！パーフェクト！' : 
+                     score >= 7 ? 'お見事！あともう少しで満点です。' : '継続は力なり！復習してもう一度挑戦しましょう！'}
+                  </p>
+                </div>
+
+                {/* 間違えた単語リスト */}
+                {wrongList.length > 0 ? (
+                  <div className="bg-red-50/70 border border-red-200 rounded-2xl p-4 mb-6">
+                    <h3 className="text-xs font-bold text-red-900 mb-3 flex items-center gap-1">
+                      <i className="fa-solid fa-triangle-exclamation"></i> 要復習の単語 ({wrongList.length}語)
+                    </h3>
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                      {wrongList.map((item, idx) => (
+                        <div key={idx} className="bg-white p-3 rounded-lg border border-red-100 text-xs">
+                          <div className="font-bold text-slate-900">{item.targetWord}</div>
+                          <div className="text-red-700 font-semibold mt-0.5">意味：{item.correctMean}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-center text-xs text-emerald-800 mb-6 font-bold">
+                    <i className="fa-solid fa-award text-amber-500 text-xl block mb-1"></i>
+                    素晴らしい！間違えた単語はありません！
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  onClick={() => startQuiz()}
+                  className="w-full bg-red-700 hover:bg-red-800 text-white font-bold py-3.5 rounded-xl shadow transition font-mincho flex items-center justify-center gap-2"
+                >
+                  <i className="fa-solid fa-rotate-right"></i> もう一度挑戦する
+                </button>
+                <button
+                  onClick={() => setGameState('home')}
+                  className="w-full bg-amber-200 hover:bg-amber-300 text-amber-900 font-bold py-3 rounded-xl transition text-xs"
+                >
+                  ホームに戻る
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
+```eof
